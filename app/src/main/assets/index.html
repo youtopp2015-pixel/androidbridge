@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>AndroidBridge</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#07070a;--bg2:#0f0f14;--bg3:#141419;--border:#1e1e28;--text:#ddd;--muted:#555;--green:#00ff9d;--red:#ff5555;--blue:#4aafff}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  input{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;width:100%;font-family:inherit;outline:none}
+  button{background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;padding:10px 16px;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+  button:active{background:var(--bg3)}
+  button:disabled{opacity:.3;cursor:not-allowed}
+  .green{background:#00ff9d18;border-color:#00ff9d44;color:var(--green)}
+  .red-btn{border-color:#ff555533;color:var(--red)}
+  .label{font-size:11px;font-weight:700;letter-spacing:.15em;color:var(--muted);margin-bottom:10px}
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+  .dot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .badge{background:#00ff9d14;border:1px solid #00ff9d33;color:var(--green);font-size:11px;padding:2px 9px;border-radius:99px;font-family:monospace}
+
+  /* SETUP SCREEN */
+  #setup{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .logo{font-size:13px;font-weight:700;letter-spacing:.2em;color:var(--green);margin-bottom:6px;text-align:center}
+  .logo-sub{font-size:12px;color:var(--muted);margin-bottom:28px;text-align:center}
+  .setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:400px}
+  .eye-wrap{position:relative}
+  .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);padding:4px;cursor:pointer;width:auto}
+  .connect-btn{width:100%;margin-top:18px;padding:13px;font-size:14px;font-weight:700;letter-spacing:.08em;background:#00ff9d18;border:1px solid #00ff9d55;color:var(--green);border-radius:10px}
+  .error{color:var(--red);font-size:12px;margin-top:10px;padding:8px 12px;background:#ff000010;border:1px solid #ff000022;border-radius:7px;display:none}
+  .divider{height:1px;background:var(--border);margin:20px 0}
+  .step{display:flex;gap:10px;font-size:12px;color:var(--muted);margin-bottom:8px}
+  .step-n{width:18px;height:18px;border-radius:50%;background:#00ff9d12;border:1px solid #00ff9d30;color:var(--green);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700}
+
+  /* DASHBOARD */
+  #dash{display:none;flex-direction:column;height:100vh}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border)}
+  .h-logo{font-size:12px;font-weight:700;letter-spacing:.15em;color:var(--green)}
+  .h-right{display:flex;align-items:center;gap:8px}
+  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border)}
+  .tab{flex:1;padding:11px 4px;font-size:12px;border:none;border-bottom:2px solid transparent;color:var(--muted);background:none;cursor:pointer;font-family:inherit;transition:all .15s}
+  .tab.active{color:var(--green);border-bottom-color:var(--green)}
+  .content{flex:1;overflow-y:auto;padding:14px}
+  .page{display:none;flex-direction:column;gap:12px}
+  .page.active{display:flex}
+
+  /* Control page */
+  .nav4{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .nav-btn{flex-direction:column;gap:5px;padding:16px 8px;background:var(--bg3);border-color:var(--border)}
+  .nav-btn span{font-size:10px;color:var(--muted);letter-spacing:.05em}
+  .row{display:flex;gap:8px}
+  .row button{flex:1}
+  .wrap-row{display:flex;flex-wrap:wrap;gap:7px}
+  .wrap-row button{flex:1;min-width:70px;flex-direction:column;gap:3px;padding:10px 6px;font-size:11px}
+  .wrap-row button span{font-size:10px;color:var(--muted)}
+
+  /* Screenshot */
+  .screen-frame{background:#050508;border:1px solid var(--border);border-radius:10px;width:100%;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px}
+  .screen-frame img{width:100%;height:100%;object-fit:contain}
+  .no-screen{color:#2a2a35;font-size:12px;text-align:center}
+
+  /* Terminal */
+  .term{background:#040407;border:1px solid var(--border);border-radius:9px;padding:12px;max-height:260px;overflow-y:auto;font-family:monospace;font-size:12px}
+  .term-entry{margin-bottom:12px}
+  .term-cmd{color:var(--muted);margin-bottom:3px}
+  .term-cmd span{color:var(--green)}
+  .term-out{color:#0d9;white-space:pre-wrap;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{padding:3px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:99px;color:var(--muted);font-size:11px;font-family:monospace;cursor:pointer}
+
+  /* App list */
+  .app-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-bottom:5px}
+  .app-pkg{font-family:monospace;font-size:11px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px}
+  .app-btns{display:flex;gap:5px;flex-shrink:0}
+  .tiny{padding:4px 9px;font-size:11px}
+
+  /* Toast */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0b1a10;border:1px solid #00ff9d33;color:var(--green);padding:9px 18px;border-radius:99px;font-size:13px;display:none;z-index:999;white-space:nowrap}
+  #toast.err{background:#1a0b0b;border-color:#ff333333;color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ── SETUP SCREEN ──────────────────────────────────────────────────────── -->
+<div id="setup">
+  <div class="logo">◈ ANDROIDBRIDGE</div>
+  <div class="logo-sub">Remote Control · Internet Edition</div>
+
+  <div class="setup-card">
+    <div class="label">HOW TO START</div>
+    <div class="step"><div class="step-n">1</div><span>On your PC run: <code style="color:#4af">node server.js</code></span></div>
+    <div class="step"><div class="step-n">2</div><span>Run: <code style="color:#4af">ngrok http 3737</code> or <code style="color:#4af">cloudflared tunnel --url http://localhost:3737</code></span></div>
+    <div class="step"><div class="step-n">3</div><span>Copy the HTTPS tunnel URL and the auth token from the server console</span></div>
+    <div class="step"><div class="step-n">4</div><span>Paste them below and tap Connect</span></div>
+
+    <div class="divider"></div>
+
+    <div class="label" style="margin-bottom:7px">TUNNEL URL</div>
+    <input id="urlInput" type="url" placeholder="https://abc123.ngrok-free.app" style="margin-bottom:14px">
+
+    <div class="label" style="margin-bottom:7px">AUTH TOKEN</div>
+    <div class="eye-wrap">
+      <input id="tokenInput" type="password" placeholder="Paste token from server console">
+      <button class="eye-btn" onclick="toggleToken()">👁</button>
+    </div>
+
+    <div id="connectError" class="error"></div>
+    <button class="connect-btn" onclick="doConnect()">Connect</button>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ─────────────────────────────────────────────────────────── -->
+<div id="dash">
+  <div class="header">
+    <div class="h-logo">◈ ANDROIDBRIDGE</div>
+    <div class="h-right">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText" style="font-size:12px;color:var(--muted)">Connecting…</span>
+      <button style="padding:5px 9px;font-size:11px;color:var(--red);border-color:#ff333322" onclick="disconnect()">⏏</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('control')">Control</button>
+    <button class="tab" onclick="showTab('screen')">Screen</button>
+    <button class="tab" onclick="showTab('apps')">Apps</button>
+    <button class="tab" onclick="showTab('shell')">Shell</button>
+  </div>
+
+  <div class="content">
+
+    <!-- Control -->
+    <div id="page-control" class="page active">
+      <div class="panel">
+        <div class="label">NAVIGATION</div>
+        <div class="nav4">
+          <button class="nav-btn" onclick="action('back')">← <span>Back</span></button>
+          <button class="nav-btn" onclick="action('home')">⌂ <span>Home</span></button>
+          <button class="nav-btn" onclick="action('recent')">⧉ <span>Recent</span></button>
+          <button class="nav-btn" onclick="action('menu')">☰ <span>Menu</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">VOLUME · BRIGHTNESS</div>
+        <div class="wrap-row">
+          <button onclick="action('volumeUp')">🔊 <span>Vol+</span></button>
+          <button onclick="action('volumeDown')">🔉 <span>Vol–</span></button>
+          <button onclick="action('volMute')">🔇 <span>Mute</span></button>
+          <button onclick="action('brightUp')">☀️ <span>Bright+</span></button>
+          <button onclick="action('brightDown')">🌙 <span>Bright–</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">MEDIA</div>
+        <div class="row">
+          <button onclick="action('mediaPrev')">⏮</button>
+          <button onclick="action('mediaPlay')">⏯</button>
+          <button onclick="action('mediaNext')">⏭</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">POWER</div>
+        <div class="row">
+          <button class="red-btn" onclick="action('power')">⏻ Power</button>
+          <button onclick="action('screenshot')">📷 HW Screenshot</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="label">SEND TEXT</div>
+        <div style="display:flex;gap:8px">
+          <input id="textInput" placeholder="Type text to send to phone…" onkeydown="if(event.key==='Enter')sendText()">
+          <button onclick="sendText()" style="flex-shrink:0">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Screen -->
+    <div id="page-screen" class="page">
+      <div class="panel">
+        <div class="label">SCREENSHOT</div>
+        <div class="screen-frame" id="screenFrame">
+          <div class="no-screen">Tap Capture to take a screenshot</div>
+        </div>
+        <div class="row">
+          <button onclick="takeScreenshot()">📸 Capture</button>
+          <button id="mirrorBtn" onclick="toggleMirror()">▶ Mirror Screen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apps -->
+    <div id="page-apps" class="page">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="label" style="margin:0">INSTALLED APPS</div>
+          <button style="padding:5px 10px;font-size:11px" onclick="loadApps()">↻ Refresh</button>
+        </div>
+        <input id="appFilter" placeholder="Filter packages…" oninput="filterApps()" style="margin-bottom:10px">
+        <div id="appList" style="max-height:400px;overflow-y:auto">
+          <div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Tap Refresh to load apps</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shell -->
+    <div id="page-shell" class="page">
+      <div class="panel">
+        <div class="label">ADB SHELL</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input id="shellInput" placeholder="Enter shell command…" style="font-family:monospace" onkeydown="if(event.key==='Enter')runShell()">
+          <button onclick="runShell()" style="flex-shrink:0">Run</button>
+        </div>
+        <div class="chips">
+          <div class="chip" onclick="setShell('df -h /sdcard')">df -h</div>
+          <div class="chip" onclick="setShell('dumpsys battery')">battery</div>
+          <div class="chip" onclick="setShell('ip addr show wlan0')">ip addr</div>
+          <div class="chip" onclick="setShell('getprop ro.build.fingerprint')">fingerprint</div>
+          <div class="chip" onclick="setShell('ps | head -20')">ps</div>
+        </div>
+        <div id="termHistory" class="term" style="margin-top:10px">
+          <div style="color:#2a2a35">$ awaiting commands…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let API = '';
+let TOKEN = '';
+let mirrorActive = false;
+let allApps = [];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Try to load saved settings from native bridge or localStorage
+  let savedUrl = '', savedToken = '';
+  try {
+    savedUrl = window.NativeBridge?.getServerUrl() || localStorage.getItem('ab_url') || '';
+    savedToken = window.NativeBridge?.getAuthToken() || localStorage.getItem('ab_token') || '';
+  } catch(e) {}
+
+  if (savedUrl && savedToken) {
+    document.getElementById('urlInput').value = savedUrl;
+    document.getElementById('tokenInput').value = savedToken;
+    doConnect();
+  }
+});
+
+// ── Connection ────────────────────────────────────────────────────────────────
+async function doConnect() {
+  const url = document.getElementById('urlInput').value.trim().replace(/\/+$/, '');
+  const token = document.getElementById('tokenInput').value.trim();
+  const errEl = document.getElementById('connectError');
+  errEl.style.display = 'none';
+
+  if (!url || !token) { showErr('Please fill in both fields'); return; }
+
+  try {
+    const r = await fetch(url + '/health');
+    const j = await r.json();
+    if (!j.ok) throw new Error('Server health check failed');
+
+    // Test auth
+    const r2 = await fetch(url + '/api/device/info', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const j2 = await r2.json();
+    if (j2.error === 'Unauthorized') throw new Error('Wrong auth token');
+
+    API = url;
+    TOKEN = token;
+
+    // Save
+    try {
+      window.NativeBridge?.saveServerUrl(url);
+      window.NativeBridge?.saveAuthToken(token);
+      localStorage.setItem('ab_url', url);
+      localStorage.setItem('ab_token', token);
+    } catch(e) {}
+
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('dash').style.display = 'flex';
+
+    refreshDevice();
+    setInterval(refreshDevice, 15000);
+
+  } catch(e) {
+    showErr(e.message || 'Connection failed. Check URL and token.');
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('connectError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function disconnect() {
+  API = ''; TOKEN = '';
+  try { localStorage.removeItem('ab_url'); localStorage.removeItem('ab_token'); window.NativeBridge?.clearSettings(); } catch(e) {}
+  document.getElementById('dash').style.display = 'none';
+  document.getElementById('setup').style.display = 'flex';
+}
+
+function toggleToken() {
+  const i = document.getElementById('tokenInput');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+const headers = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
+
+async function apiGet(path) {
+  const r = await fetch(API + path, { headers: headers() });
+  return r.json();
+}
+
+async function apiPost(path, body = {}) {
+  const r = await fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  return r.json();
+}
+
+async function apiPostRaw(path, body = {}) {
+  return fetch(API + path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+}
+
+// ── Device status ─────────────────────────────────────────────────────────────
+async function refreshDevice() {
+  try {
+    const info = await apiGet('/api/device/info');
+    if (info.error) { setStatus(false, 'No device'); return; }
+    setStatus(true, info.model + ' · Android ' + info.android + ' · ⚡' + info.battery + '%');
+  } catch { setStatus(false, 'Offline'); }
+}
+
+function setStatus(on, text) {
+  document.getElementById('statusDot').className = 'dot' + (on ? ' on' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['control','screen','apps','shell'][i] === id));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+}
+
+// ── Control actions ───────────────────────────────────────────────────────────
+async function action(name) {
+  try { await apiPost('/api/input/action', { action: name }); toast(name + ' ✓'); }
+  catch { toast('Failed', true); }
+}
+
+async function sendText() {
+  const text = document.getElementById('textInput').value;
+  if (!text) return;
+  try { await apiPost('/api/input/text', { text }); toast('Text sent ✓'); document.getElementById('textInput').value = ''; }
+  catch { toast('Failed', true); }
+}
+
+// ── Screen ────────────────────────────────────────────────────────────────────
+async function takeScreenshot() {
+  toast('Capturing…');
+  try {
+    const r = await apiPostRaw('/api/screen/screenshot');
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const frame = document.getElementById('screenFrame');
+    frame.innerHTML = '<img src="' + url + '" alt="screenshot">';
+    toast('Screenshot captured ✓');
+  } catch { toast('Screenshot failed', true); }
+}
+
+async function toggleMirror() {
+  try {
+    const r = await apiPost('/api/screen/mirror');
+    mirrorActive = r.status === 'started';
+    document.getElementById('mirrorBtn').textContent = mirrorActive ? '⏹ Stop Mirror' : '▶ Mirror Screen';
+    toast(mirrorActive ? 'Mirror started on PC ✓' : 'Mirror stopped');
+  } catch { toast('Mirror failed', true); }
+}
+
+// ── Apps ──────────────────────────────────────────────────────────────────────
+async function loadApps() {
+  toast('Loading apps…');
+  try {
+    const r = await apiGet('/api/apps');
+    allApps = r.packages || [];
+    renderApps(allApps);
+    toast(allApps.length + ' apps loaded ✓');
+  } catch { toast('Failed to load apps', true); }
+}
+
+function filterApps() {
+  const q = document.getElementById('appFilter').value.toLowerCase();
+  renderApps(allApps.filter(a => a.toLowerCase().includes(q)));
+}
+
+function renderApps(list) {
+  const el = document.getElementById('appList');
+  if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">No apps found</div>'; return; }
+  el.innerHTML = list.map(pkg => `
+    <div class="app-item">
+      <span class="app-pkg">${pkg}</span>
+      <div class="app-btns">
+        <button class="tiny" onclick="launchApp('${pkg}')">▶</button>
+        <button class="tiny red-btn" onclick="killApp('${pkg}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function launchApp(pkg) {
+  try { await apiPost('/api/apps/launch', { package: pkg }); toast('Launched ✓'); }
+  catch { toast('Launch failed', true); }
+}
+
+async function killApp(pkg) {
+  try { await apiPost('/api/apps/kill', { package: pkg }); toast('Killed ✓'); }
+  catch { toast('Kill failed', true); }
+}
+
+// ── Shell ─────────────────────────────────────────────────────────────────────
+async function runShell() {
+  const cmd = document.getElementById('shellInput').value.trim();
+  if (!cmd) return;
+  try {
+    const r = await apiPost('/api/shell', { command: cmd });
+    const history = document.getElementById('termHistory');
+    const entry = document.createElement('div');
+    entry.className = 'term-entry';
+    entry.innerHTML = `<div class="term-cmd"><span>$</span> ${cmd}</div><div class="term-out">${(r.output||r.error||'(no output)').replace(/</g,'&lt;')}</div>`;
+    if (history.firstChild?.style?.color === '#2a2a35') history.innerHTML = '';
+    history.insertBefore(entry, history.firstChild);
+    document.getElementById('shellInput').value = '';
+  } catch { toast('Shell error', true); }
+}
+
+function setShell(cmd) { document.getElementById('shellInput').value = cmd; }
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, err = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = err ? 'err' : '';
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.style.display = 'none', 2500);
+}
+</script>
+</body>
+</html>
