@@ -265,7 +265,7 @@ async function doConnect() {
   if (!url || !token) { showErr('Please fill in both fields'); return; }
 
   try {
-    const r = await fetch(url + '/health');
+    const r = await fetch(url + '/health', { headers: { 'ngrok-skip-browser-warning': 'true', 'User-Agent': 'AndroidBridgeApp' } });
     const j = await r.json();
     if (!j.ok) throw new Error('Server health check failed');
 
@@ -317,7 +317,7 @@ function toggleToken() {
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
-const headers = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN });
+const headers = () => ({ 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, 'ngrok-skip-browser-warning': 'true', 'User-Agent': 'AndroidBridgeApp' });
 
 async function apiGet(path) {
   const r = await fetch(API + path, { headers: headers() });
